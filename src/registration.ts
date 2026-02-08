@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { AuthResponse, CheckUserRequest, CheckUserResponse, DeviceRegistrationRequest, DeviceRegistrationResponse, OTPRequest, OTPResponse, ProfileSetupRequest, VerifyOTPRequest } from "./interface.js";
 import { base64Decode, base64Encode, computeHMAC, computeSharedSecret, deriveDeviceSecret, deriveServerHMACKey, generateX25519KeyPair } from "./crypto.js";
+import { storage } from "./storage.js";
 
 export class RegistrationClient {
     private axios: AxiosInstance;
@@ -56,6 +57,9 @@ export class RegistrationClient {
         this.deviceId = data.deviceId;
         this.deviceSecret = deviceSecret;
         this.serverHMACKey = serverHMACKey;
+
+        storage.setItem('device_secret', base64Encode(this.deviceSecret));
+        storage.setItem('device_id', this.deviceId);
 
         return data;
     }
