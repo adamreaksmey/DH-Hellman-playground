@@ -10,7 +10,7 @@ async function main() {
   
     try {
       // 1. Device Registration (do once per device)
-      const deviceResp = await client.registerDevice('My Browser');
+      const deviceResp = await client.registerDevice('My Device');
       console.log('Device registered:', deviceResp.deviceId);
   
       // 2. Check user (optional)
