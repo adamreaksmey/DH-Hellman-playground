@@ -1,41 +1,41 @@
-interface DeviceRegistrationRequest {
+export interface DeviceRegistrationRequest {
     clientPublicKey: string;
     deviceInfo: string;
     platform: 'ios' | 'android' | 'web';
     deviceName?: string;
 }
 
-interface DeviceRegistrationResponse {
+export interface DeviceRegistrationResponse {
     deviceId: string;
     serverPublicKey: string;
 }
 
-interface CheckUserRequest {
+export interface CheckUserRequest {
     identifier: string;
 }
 
-interface CheckUserResponse {
+export interface CheckUserResponse {
     exist: boolean;
     hasPassword: boolean;
     loginMethod: string[];
 }
 
-interface OTPRequest {
+export interface OTPRequest {
     phoneNumber: string;
 }
 
-interface OTPResponse {
+export interface OTPResponse {
     message: string;
     expiresIn: number;
 }
 
-interface VerifyOTPRequest {
+export interface VerifyOTPRequest {
     phoneNumber: string;
     otp: string;
     deviceId: string;
 }
 
-interface AuthResponse {
+export interface AuthResponse {
     sessionId: string;
     user: {
         userId: string;
@@ -50,7 +50,7 @@ interface AuthResponse {
     };
 }
 
-interface ProfileSetupRequest {
+export interface ProfileSetupRequest {
     username?: string;
     password?: string;
     displayName?: string;

@@ -14,9 +14,6 @@ type LoginRequestBody = {
     ip_address: string
 }
 
-export async function requestRegister() {
-    
-}
 
 export async function requestLogin(body: LoginRequestBody) {
     const data = await axios.post(`${BASE_URL}/login`, body)
