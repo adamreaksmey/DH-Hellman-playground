@@ -26,3 +26,23 @@ export async function requestLog(body: LoginRequestBody) {
 
     return data;
 }
+
+export async function requestLogout() {
+    const session_id = storage.getItem('session_id');
+    if (!session_id) {
+        throw new Error('Session ID not found')
+    }
+
+    const data = await axios.post(`${BASE_URL}/logout`, {
+        session_id: session_id
+    })
+
+    if (data.status !== 200) {
+        throw new Error(`Failed to logout: ${data.statusText}`)
+    }
+
+    storage.removeItem('session_id');
+    storage.removeItem('user_id');
+
+    return data;
+}
