@@ -14,7 +14,7 @@ type LoginRequestBody = {
     ip_address: string
 }
 
-export async function requestLog(body: LoginRequestBody) {
+export async function requestLogin(body: LoginRequestBody) {
     const data = await axios.post(`${BASE_URL}/login`, body)
 
     if (data.status !== 200) {
@@ -45,4 +45,13 @@ export async function requestLogout() {
     storage.removeItem('user_id');
 
     return data;
+}
+
+export function getSessionID() {
+    return storage.getItem('session_id');
+}
+
+export function isLoggedIn() {
+    const sessionID = getSessionID();
+    return !!sessionID;
 }
