@@ -209,15 +209,3 @@ This is intentionally a “small ugly UI” focused on correctness and observabi
   - `sessionId` for authenticated requests
 - Never log these secrets in production; they are logged only for debugging in this reference implementation.
 
----
-
-## Extending / integrating
-
-Some common integration patterns for your team:
-
-- **Mobile app**: mirror `RegistrationClient`’s logic in Swift/Kotlin using your platform’s crypto APIs (this project is a reference for the exact message formats and HMAC calculations).
-- **Backend validation**: use `src/interface.ts` as the single source of truth for request/response shapes and keep it aligned with your backend DTOs.
-- **Additional signed endpoints**: reuse the HMAC header pattern from `setupProfile` to sign other authenticated API calls with `serverHMACKey`.
-
-If you add or change endpoints, update `src/interface.ts`, `src/registration.ts`, and (optionally) the React playground to keep everything in sync.
-
