@@ -138,13 +138,17 @@ export class RegistrationClient {
         const message = `${this.sessionId}:POST:${path}:${body}:${timestamp}:${nonce}`;
         const signature = computeHMAC(this.serverHMACKey, message);
 
+        const headers = {
+            Authorization: `Session ${this.sessionId}`,
+            'X-Signature': signature,
+            'X-Timestamp': timestamp,
+            'X-Nonce': nonce,
+        }
+
+        console.log("show headers", headers);
+
         const { data } = await this.axios.post('/api/v1/user/profile/setup', profile, {
-            headers: {
-                Authorization: `Session ${this.sessionId}`,
-                'X-Signature': signature,
-                'X-Timestamp': timestamp,
-                'X-Nonce': nonce,
-            },
+            headers,
         });
 
         return data;
