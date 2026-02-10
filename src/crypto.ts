@@ -3,8 +3,6 @@
 import { x25519 } from '@noble/curves/ed25519.js';
 import crypto from 'node:crypto';
 
-const ECDHMode = 'x25519'
-
 export function generateHMAC(secret: Buffer, message: string): string {
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(message, 'utf8');
@@ -15,14 +13,9 @@ export function generateNonce() {
     return crypto.randomBytes(16).toString('hex');
 }
 
-export function generateX25519KeyPair() {
-    const ecdh = crypto.createECDH(ECDHMode);
-    ecdh.generateKeys();
-    return {
-        privateKey: ecdh.getPrivateKey(),
-        publicKey: ecdh.getPublicKey(),
-        ecdh: ecdh
-    };
+export function generateX25519KeyPair(): { privateKey: Uint8Array; publicKey: Uint8Array } {
+    const { secretKey: privateKey, publicKey } = x25519.keygen();
+    return { privateKey, publicKey };
 }
 
 export function base64Encode(bytes: Uint8Array): string {
