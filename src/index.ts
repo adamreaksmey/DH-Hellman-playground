@@ -22,24 +22,38 @@ async function main() {
 
         // 2. Check user — POST /account/check with { user: { areaCode, phoneNumber } }
         const checkResp = await client.checkUser({ areaCode, phoneNumber });
+
+        console.log("checheckRespck", checkResp)
         console.log(
             "User exists:",
-            checkResp.isRegistered,
+            checkResp.data.isRegistered,
             "userid:",
-            checkResp.userid
+            checkResp.data.userid
         );
 
-        // 3. Send verification code — POST /account/code/send
-        await client.sendVerifyCode(VerificationCodeFor.Login, {
+        // 3. Send verification code for REGISTRATION — POST /account/code/send
+        // NOTE: using usedFor=Login will reject unregistered phones/emails.
+        await client.sendVerifyCode(VerificationCodeFor.Register, {
             areaCode,
             phoneNumber,
         });
         console.log("OTP sent. Check your phone.");
 
-        // 4. Login with OTP — POST /account/login (HMAC sessionID + deviceSignature)
+        // 4. Register user — POST /account/register (creates the user; returns sessionID)
         const otp = defaultOTPVerificationCode;
-        const authResult = await client.verifyOTP(areaCode, phoneNumber, otp);
-        console.log("Logged in:", authResult.userID, "sessionID:", authResult.sessionID);
+        const reg = await client.registerUser({
+            verifyCode: otp,
+            autoLogin: false,
+            user: {
+                areaCode,
+                phoneNumber,
+                nickname: "John Doe",
+                password: "SecurePass123!",
+            },
+        });
+
+        console.log("show register result", reg);
+        console.log("Registered:", reg.userID, "sessionID:", reg.sessionID);
 
         // 5. Update profile (HMAC protected) — POST /user/update
         await client.updateUserInfo({

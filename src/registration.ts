@@ -8,6 +8,8 @@ import {
     LoginRequest,
     LoginResponse,
     ProfileSetupRequest,
+    RegisterUserRequest,
+    RegisterUserResponse,
     SendVerifyCodeRequest,
     SendVerifyCodeResponse,
 } from "./interface.js";
@@ -21,6 +23,7 @@ import {
     generateX25519KeyPair,
 } from "./crypto.js";
 import { storage } from "./storage.js";
+import { randomUUID } from "node:crypto";
 
 /** Platform ID values used by messenger-business-service (openim protocol). */
 const PLATFORM_IDS = {
@@ -75,6 +78,7 @@ export class RegistrationClient {
             headers: {
                 "Content-Type": "application/json",
                 "User-Agent": deviceInfo,
+                "operationID": randomUUID()
             },
             timeout: 15000,
         });
@@ -90,6 +94,8 @@ export class RegistrationClient {
     // --------------------------------------------------------------------------
     async registerDevice(deviceName?: string): Promise<DeviceRegistrationResponse> {
         const { publicKey, privateKey } = generateX25519KeyPair();
+        // console.log("show public key", publicKey);
+        // console.log("show private key", privateKey);
         const clientPublicKeyBase64 = base64Encode(publicKey);
 
         const payload: DeviceRegistrationRequest = {
@@ -104,12 +110,14 @@ export class RegistrationClient {
             payload
         );
 
-        const serverPubKeyBytes = base64Decode(data.serverPublicKey);
+        console.log('show register data', data);
+
+        const serverPubKeyBytes = base64Decode(data.data.serverPublicKey);
         const sharedSecret = computeSharedSecret(privateKey, serverPubKeyBytes);
         const deviceSecret = deriveDeviceSecret(sharedSecret, this.deviceInfo);
         const serverHMACKey = deriveServerHMACKey(deviceSecret);
 
-        this.deviceID = data.deviceID;
+        this.deviceID = data.data.deviceID;
         this.deviceSecret = deviceSecret;
         this.serverHMACKey = serverHMACKey;
 
@@ -241,6 +249,8 @@ export class RegistrationClient {
             payload
         );
 
+        console.log("show login data", data);
+
         this.sessionID = data.sessionID;
         return {
             sessionID: data.sessionID,
@@ -255,6 +265,84 @@ export class RegistrationClient {
         otp: string
     ): Promise<AuthResponse> {
         return this.loginWithOTP(areaCode, phoneNumber, otp);
+    }
+
+    // --------------------------------------------------------------------------
+    // Step 4b: Register user — POST /account/register (creates the user)
+    // HMAC:
+    // - sessionID = HMAC(serverHMACKey, "deviceID:timestamp:nonce")
+    // - deviceSignature = HMAC(serverHMACKey, "register:{account}:{timestamp}:{nonce}")
+    //   where account = areaCode + " " + phoneNumber OR email (same as server)
+    // --------------------------------------------------------------------------
+    async registerUser(options: {
+        verifyCode: string;
+        invitationCode?: string;
+        autoLogin?: boolean;
+        user: {
+            nickname?: string;
+            faceURL?: string;
+            birth?: number;
+            gender?: number;
+            areaCode?: string;
+            phoneNumber?: string;
+            email?: string;
+            account?: string;
+            password?: string;
+        };
+    }): Promise<RegisterUserResponse> {
+        if (!this.deviceID || !this.serverHMACKey) {
+            throw new Error("Device must be registered first. Call registerDevice().");
+        }
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const nonce = crypto.randomUUID();
+
+        const sessionMessage = `${this.deviceID}:${timestamp}:${nonce}`;
+        const sessionID = computeHMAC(this.serverHMACKey, sessionMessage);
+
+        const registerAccount =
+            options.user.email && options.user.email.trim() !== ""
+                ? options.user.email.trim()
+                : verifyCodeJoin(options.user.areaCode ?? "", options.user.phoneNumber ?? "");
+
+        const registerMessage = `register:${registerAccount}:${timestamp}:${nonce}`;
+        const deviceSignature = computeHMAC(this.serverHMACKey, registerMessage);
+
+        const payload: RegisterUserRequest = {
+            ...(options.invitationCode ? { invitationCode: options.invitationCode } : {}),
+            verifyCode: options.verifyCode,
+            deviceID: this.deviceID,
+            platform: this.platformId,
+            autoLogin: options.autoLogin ?? false,
+            user: {
+                nickname: options.user.nickname,
+                faceURL: options.user.faceURL,
+                birth: options.user.birth,
+                gender: options.user.gender,
+                areaCode: options.user.areaCode,
+                phoneNumber: options.user.phoneNumber,
+                email: options.user.email,
+                account: options.user.account,
+                password: options.user.password,
+            },
+            sessionID,
+            timestamp,
+            nonce,
+            deviceSignature,
+        };
+
+        const { data } = await this.axios.post("/account/register", payload);
+
+        // Some deployments wrap responses as { errCode, errMsg, data }.
+        const unwrapped: RegisterUserResponse = (data?.data ?? data) as RegisterUserResponse;
+
+        if (unwrapped?.sessionID) {
+            this.sessionID = unwrapped.sessionID;
+        } else {
+            // Chat RPC always returns sessionID for end-user register; keep our derived one as fallback.
+            this.sessionID = sessionID;
+        }
+
+        return unwrapped;
     }
 
     // --------------------------------------------------------------------------
@@ -306,10 +394,22 @@ export class RegistrationClient {
             areaCode,
             phoneNumber,
         });
-        const authResult = await this.loginWithOTP(areaCode, phoneNumber, otp);
+        const reg = await this.registerUser({
+            verifyCode: otp,
+            user: {
+                areaCode,
+                phoneNumber,
+            },
+            autoLogin: false,
+        });
+
         if (profile) {
             await this.updateUserInfo(profile);
         }
-        return authResult;
+
+        return {
+            sessionID: reg.sessionID ?? this.sessionID ?? "",
+            userID: reg.userID,
+        };
     }
 }
