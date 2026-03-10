@@ -1,58 +1,96 @@
+/** Matches messenger-business-service RegisterDeviceReq / device.go */
 export interface DeviceRegistrationRequest {
     clientPublicKey: string;
     deviceInfo: string;
-    platform: 'ios' | 'android' | 'web';
+    platform: string; // e.g. 'ios' | 'android' | 'web'; server accepts string, may map to platform ID
     deviceName?: string;
 }
 
+/** Matches messenger-business-service RegisterDeviceResponse (JSON: deviceID, serverPublicKey) */
 export interface DeviceRegistrationResponse {
-    deviceId: string;
+    deviceID: string;
     serverPublicKey: string;
 }
 
+/** CheckUserExistReq: body has user (RegisterUserInfo with areaCode, phoneNumber, or email) */
 export interface CheckUserRequest {
-    identifier: string;
+    user: {
+        areaCode?: string;
+        phoneNumber?: string;
+        email?: string;
+    };
 }
 
+/** CheckUserExistResp: userid, isRegistered */
 export interface CheckUserResponse {
-    exist: boolean;
-    hasPassword: boolean;
-    loginMethod: string[];
+    userid: string;
+    isRegistered: boolean;
 }
 
-export interface OTPRequest {
-    phoneNumber: string;
+/** SendVerifyCodeReq: usedFor (1=register, 2=reset pwd, 3=login), deviceID, platform (int32), areaCode, phoneNumber, or email */
+export interface SendVerifyCodeRequest {
+    usedFor: number;
+    deviceID?: string;
+    platform: number;
+    areaCode?: string;
+    phoneNumber?: string;
+    email?: string;
+    invitationCode?: string;
 }
 
-export interface OTPResponse {
-    message: string;
-    expiresIn: number;
+/** SendVerifyCodeResp is empty */
+export interface SendVerifyCodeResponse {
+    // empty
 }
 
-export interface VerifyOTPRequest {
-    phoneNumber: string;
-    otp: string;
-    deviceId: string;
+/** LoginReq for OTP login: areaCode, phoneNumber, verifyCode, deviceID, sessionID, timestamp, nonce, deviceSignature, deviceInfo, platform, ip */
+export interface LoginRequest {
+    areaCode?: string;
+    phoneNumber?: string;
+    verifyCode?: string;
+    account?: string;
+    password?: string;
+    platform: number;
+    deviceID: string;
+    ip?: string;
+    email?: string;
+    sessionID: string;
+    timestamp: string;
+    nonce: string;
+    deviceSignature: string;
+    deviceInfo?: string;
+}
+
+/** LoginResp: sessionID, userID (chatToken deprecated for HMAC) */
+export interface LoginResponse {
+    sessionID: string;
+    userID: string;
 }
 
 export interface AuthResponse {
-    sessionId: string;
-    user: {
-        userId: string;
-        username: string;
-        phoneNumber: string;
+    sessionID: string;
+    userID: string;
+    user?: {
+        userID: string;
+        username?: string;
+        phoneNumber?: string;
         displayName?: string;
         avatarUrl?: string;
-        isNewUser: boolean;
-        isGuest: boolean;
-        hasPassword: boolean;
+        isNewUser?: boolean;
+        isGuest?: boolean;
+        hasPassword?: boolean;
         bio?: string;
     };
 }
 
+/** UpdateUserInfoReq: optional fields (server sets userID from HMAC context) */
 export interface ProfileSetupRequest {
-    username?: string;
-    password?: string;
-    displayName?: string;
-    bio?: string;
+    nickname?: string;
+    faceURL?: string;
+    account?: string;
+    phoneNumber?: string;
+    areaCode?: string;
+    email?: string;
+    gender?: number;
+    birth?: number;
 }
