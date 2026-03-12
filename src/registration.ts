@@ -351,6 +351,8 @@ export class RegistrationClient {
       deviceSignature,
     };
 
+    console.log("show payload", payload)
+
     const { data } = await this.axios.post("/account/register", payload);
 
     // Some deployments wrap responses as { errCode, errMsg, data }.

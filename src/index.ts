@@ -11,7 +11,7 @@ async function main() {
     const PLATFORM = "web";
     const defaultOTPVerificationCode = "999999";
     const areaCode = "+855";
-    const phoneNumber = "123216721";
+    const phoneNumber = "111123721";
 
     const client = new RegistrationClient(BASE_URL, DEVICE_INFO, PLATFORM);
 
