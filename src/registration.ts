@@ -431,7 +431,11 @@ export class RegistrationClient {
       "X-Nonce": nonce,
     };
 
+    console.log("show bodyObj", bodyObj);
+    console.log("show headers", headers)
+
     const { data } = await this.axios.post(path, bodyObj, { headers });
+    console.log("show the data", data)
     return data;
   }
 
