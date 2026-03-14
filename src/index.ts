@@ -61,6 +61,10 @@ async function main() {
             faceURL: "",
         });
         console.log("Profile update complete");
+
+        // 6. Logout — POST /account/logout
+        await client.logout();
+        console.log("Logout complete");
     } catch (err) {
         if (axios.isAxiosError(err)) {
             console.error(

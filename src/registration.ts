@@ -406,6 +406,36 @@ export class RegistrationClient {
   }
 
   // --------------------------------------------------------------------------
+  // Logout — POST /account/logout (HMAC protected)
+  // Body: LogoutReq { sessionID?, all? }. If all is false/omitted, server uses session from context.
+  // --------------------------------------------------------------------------
+  async logout(options?: { all?: boolean }): Promise<unknown> {
+    if (!this.sessionID || !this.serverHMACKey) {
+      throw new Error(
+        "Must be logged in. Call loginWithOTP() or registerUser() first.",
+      );
+    }
+
+    const path = "/account/logout";
+    const bodyObj = options?.all === true ? { all: true } : {};
+    const body = JSON.stringify(bodyObj);
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = crypto.randomUUID();
+    const message = `${this.sessionID}:POST:${path}:${body}:${timestamp}:${nonce}`;
+    const signature = computeHMAC(this.serverHMACKey, message);
+
+    const headers = {
+      Authorization: `Session ${this.sessionID}`,
+      "X-Signature": signature,
+      "X-Timestamp": timestamp,
+      "X-Nonce": nonce,
+    };
+
+    const { data } = await this.axios.post(path, bodyObj, { headers });
+    return data;
+  }
+
+  // --------------------------------------------------------------------------
   // Convenience: full registration flow (send code -> login with OTP -> optional profile)
   // --------------------------------------------------------------------------
   async fullRegistrationFlow(

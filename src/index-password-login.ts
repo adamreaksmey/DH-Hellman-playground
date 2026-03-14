@@ -89,6 +89,10 @@ async function passwordRegisterDemo() {
         deviceSignature,
     };
 
+    console.log("show payload", payload)
+    console.log("show register message", registerMessage)
+    console.log("show device sig", deviceSignature)
+
     const { data } = await axios.post(
         `${BASE_URL}/account/password/register`,
         payload,
