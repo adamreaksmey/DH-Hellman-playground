@@ -2,7 +2,7 @@
 export interface DeviceRegistrationRequest {
   clientPublicKey: string;
   deviceInfo: string;
-  platform: string; // e.g. 'ios' | 'android' | 'web'; server accepts string, may map to platform ID
+  platform: number; // e.g. '1' | '2' | '3' | '4' | '5' | '6'; server accepts string, may map to platform ID
   deviceName?: string;
 }
 

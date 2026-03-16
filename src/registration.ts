@@ -103,9 +103,11 @@ export class RegistrationClient {
     const payload: DeviceRegistrationRequest = {
       clientPublicKey: clientPublicKeyBase64,
       deviceInfo: this.deviceInfo,
-      platform: this.platform,
+      platform: toPlatformId(this.platform),
       deviceName: deviceName ?? "",
     };
+
+    console.log("show payload", payload);
 
     const { data } = await this.axios.post<DeviceRegistrationResponse>(
       "/device/register",
