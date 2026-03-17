@@ -11,7 +11,7 @@ async function main() {
     const PLATFORM = "web";
     const defaultOTPVerificationCode = "999999";
     const areaCode = "+855";
-    const phoneNumber = "888888888";
+    const phoneNumber = "948888888";
 
     const client = new RegistrationClient(BASE_URL, DEVICE_INFO, PLATFORM);
 
@@ -61,6 +61,10 @@ async function main() {
             faceURL: "",
         });
         console.log("Profile update complete");
+
+        // extra
+        const userInfo = await client.getCurrentUserInfo();
+        console.log("User info:", userInfo);
 
         // 6. Logout — POST /account/logout
         await client.logout();

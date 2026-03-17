@@ -402,6 +402,37 @@ export class RegistrationClient {
     return data;
   }
 
+  // --------------------------------------------------------------------------
+  // Step 6: Get current user info — POST /user/me
+  // Signature: HMAC(serverHMACKey, "sessionID:POST:/user/me:<body>:timestamp:nonce")
+  // --------------------------------------------------------------------------
+  async getCurrentUserInfo(): Promise<unknown> {
+    if (!this.sessionID || !this.serverHMACKey) {
+      throw new Error(
+        "Must be logged in. Call loginWithOTP() or verifyOTP() first.",
+      );
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = crypto.randomUUID();
+    const path = "/user/me";
+    const body = JSON.stringify({});
+    const message = `${this.sessionID}:POST:${path}:${body}:${timestamp}:${nonce}`;
+    const signature = computeHMAC(this.serverHMACKey, message);
+
+    const headers = {
+      Authorization: `Session ${this.sessionID}`,
+      "X-Signature": signature,
+      "X-Timestamp": timestamp,
+      "X-Nonce": nonce,
+    };
+
+    const { data } = await this.axios.post(path, body, {
+      headers,
+    });
+    return data;
+  }
+
   /** Legacy alias: setupProfile -> updateUserInfo (field names match UpdateUserInfoReq). */
   async setupProfile(profile: ProfileSetupRequest): Promise<unknown> {
     return this.updateUserInfo(profile);
