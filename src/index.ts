@@ -6,12 +6,14 @@ import {
 } from "./registration.js";
 
 async function main() {
+    // const BASE_URL = "https://mbs-api-dev.vai247.pro";
     const BASE_URL = "http://localhost:10008";
+
     const DEVICE_INFO = "MyApp/1.0 web";
     const PLATFORM = "web";
     const defaultOTPVerificationCode = "999999";
     const areaCode = "+855";
-    const phoneNumber = "948888888";
+    const phoneNumber = "971888888";
 
     const client = new RegistrationClient(BASE_URL, DEVICE_INFO, PLATFORM);
 
@@ -56,11 +58,11 @@ async function main() {
         console.log("Registered:", reg.userID, "sessionID:", reg.sessionID);
 
         // 5. Update profile (HMAC protected) — POST /user/update
-        await client.updateUserInfo({
-            nickname: "John Doe",
+        const data = await client.updateUserInfo({
+            nickname: "អាចុយម្រាយ",
             faceURL: "",
         });
-        console.log("Profile update complete");
+        console.log("Profile update complete", data);
 
         // extra
         const userInfo = await client.getCurrentUserInfo();
