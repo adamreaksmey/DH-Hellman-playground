@@ -13,7 +13,7 @@ async function main() {
     const PLATFORM = "web";
     const defaultOTPVerificationCode = "999999";
     const areaCode = "+855";
-    const phoneNumber = "971888888";
+    const phoneNumber = "976888888";
 
     const client = new RegistrationClient(BASE_URL, DEVICE_INFO, PLATFORM);
 
@@ -45,7 +45,7 @@ async function main() {
         const otp = defaultOTPVerificationCode;
         const reg = await client.registerUser({
             verifyCode: otp,
-            autoLogin: false,
+            autoLogin: true,
             user: {
                 areaCode,
                 phoneNumber,
@@ -60,13 +60,16 @@ async function main() {
         // 5. Update profile (HMAC protected) — POST /user/update
         const data = await client.updateUserInfo({
             nickname: "អាចុយម្រាយ",
-            faceURL: "",
+            faceURL: ""
         });
         console.log("Profile update complete", data);
 
         // extra
         const userInfo = await client.getCurrentUserInfo();
         console.log("User info:", userInfo);
+
+        const getNewImTokenMinted = await client.mintNewImToken();
+        console.log("show new im token minted", getNewImTokenMinted);
 
         // 6. Logout — POST /account/logout
         await client.logout();

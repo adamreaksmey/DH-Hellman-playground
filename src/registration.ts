@@ -464,8 +464,36 @@ export class RegistrationClient {
       "X-Nonce": nonce,
     };
 
-    console.log("show bodyObj", bodyObj);
-    console.log("show headers", headers)
+    const { data } = await this.axios.post(path, bodyObj, { headers });
+    console.log("show the data", data)
+    return data;
+  }
+
+  /**
+   * mint new im token
+   * @returns im token
+   */
+  async mintNewImToken() {
+    if (!this.sessionID || !this.serverHMACKey) {
+      throw new Error(
+        "Must be logged in. Call loginWithOTP() or registerUser() first.",
+      );
+    }
+
+    const path = "/account/im_token";
+    const bodyObj = {};
+    const body = JSON.stringify(bodyObj);
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = crypto.randomUUID();
+    const message = `${this.sessionID}:POST:${path}:${body}:${timestamp}:${nonce}`;
+    const signature = computeHMAC(this.serverHMACKey, message);
+
+    const headers = {
+      Authorization: `Session ${this.sessionID}`,
+      "X-Signature": signature,
+      "X-Timestamp": timestamp,
+      "X-Nonce": nonce,
+    };
 
     const { data } = await this.axios.post(path, bodyObj, { headers });
     console.log("show the data", data)
