@@ -139,6 +139,7 @@ export class RegistrationClient {
 
     storage.setItem("device_secret", base64Encode(this.deviceSecret));
     storage.setItem("device_id", this.deviceID);
+    storage.setItem("server_hmac_key", base64Encode(this.serverHMACKey));
 
     return data;
   }
@@ -268,6 +269,7 @@ export class RegistrationClient {
     console.log("show login data", data);
 
     this.sessionID = data.sessionID;
+    storage.setItem("user_id", data.userID);
     return {
       sessionID: data.sessionID,
       userID: data.userID,

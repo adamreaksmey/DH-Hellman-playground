@@ -4,7 +4,9 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { base64Decode, computeHMAC } from "./crypto.js";
 import { decryptJWT } from "./util.js";
+import { storage } from "./storage.js";
 
 type InitiateResp = {
   id: string;
@@ -33,20 +35,48 @@ type CompleteResp = {
 };
 
 const CHAT_API_BASE = "http://localhost:10008"; // <-- your chat-api base
-const OPENIM_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI1MDE0NTk3Njk2IiwiUGxhdGZvcm1JRCI6NSwiZXhwIjoxNzgxNjc3OTE5LCJpYXQiOjE3NzM5MDE5MTR9.qbaT26y4e8_UHmWPhkYJp51FqbyJKtHpUqBLosGKK8A"; // <-- set your token here
 const GROUP = "chat"; // tag/group
 const FILE_PATH = path.resolve(process.cwd(), "src", "test.jpg"); // <-- file to upload
 // For JPEG, prefer image/jpeg (image/jpg is non-standard but often accepted)
 const CONTENT_TYPE = "image/jpeg";
+const SESSION_ID = ""; // <-- set authenticated sessionID
+const SERVER_HMAC_KEY_B64 = base64Decode(storage.getItem("server_hmac_key") ?? ""); // <-- set base64 serverHMACKey
+
+function buildProtectedHeaders(
+  method: "POST",
+  apiPath: string,
+  body: unknown,
+): Record<string, string> {
+  if (!SESSION_ID || !SERVER_HMAC_KEY_B64) {
+    throw new Error(
+      "Missing SESSION_ID or SERVER_HMAC_KEY_B64 for protected upload endpoints.",
+    );
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const nonce = randomUUID();
+  const bodyJson = JSON.stringify(body);
+  const message = `${SESSION_ID}:${method}:${apiPath}:${bodyJson}:${timestamp}:${nonce}`;
+  const signature = computeHMAC(SERVER_HMAC_KEY_B64, message);
+
+  return {
+    Authorization: `Session ${SESSION_ID}`,
+    "X-Signature": signature,
+    "X-Timestamp": timestamp,
+    "X-Nonce": nonce,
+  };
+}
 
 async function httpPostJson<T>(url: string, body: any): Promise<T> {
   try {
+    const endpoint = new URL(url).pathname;
+    const protectedHeaders = buildProtectedHeaders("POST", endpoint, body);
+
     const res = await axios.post<T>(url, body, {
       headers: {
         "Content-Type": "application/json",
-        token: OPENIM_TOKEN,
         operationID: randomUUID(),
+        ...protectedHeaders,
       },
       // some OpenIM gateways return non-2xx with useful body; surface it below
       validateStatus: () => true,
@@ -115,9 +145,7 @@ async function uploadToS3Form(
   const respText =
     typeof res.data === "string" ? res.data : JSON.stringify(res.data);
   if (!okCodes.has(res.status)) {
-    throw new Error(
-      `S3 upload failed: HTTP ${res.status}\n${respText}`,
-    );
+    throw new Error(`S3 upload failed: HTTP ${res.status}\n${respText}`);
   }
 
   return { status: res.status, body: respText };
@@ -125,13 +153,16 @@ async function uploadToS3Form(
 
 async function main() {
   const s = await stat(FILE_PATH);
-  const showUserDecrypted = decryptJWT(OPENIM_TOKEN) as UserDecryptedResp;
+
+  const userId = storage.getItem("user_id");
+
+  if (!userId) throw new Error("User ID not found");
 
   // 1) Initiate (your chat service proxies to OpenIM)
   const initiate = await httpPostJson<any>(
     `${CHAT_API_BASE}/object/initiate_form_data`,
     {
-      name: `${showUserDecrypted.payload.UserID}/${path.basename(FILE_PATH)}`,
+      name: `${userId}/${path.basename(FILE_PATH)}`,
       size: s.size,
       contentType: CONTENT_TYPE,
       group: GROUP,
@@ -141,7 +172,7 @@ async function main() {
   // Depending on your API response wrapper, the object might be directly returned
   // or nested (e.g. { errCode, data }). If you see nesting, adjust here.
   const init: InitiateResp = initiate.data ?? initiate;
-//   console.log("show init", init);
+  //   console.log("show init", init);
 
   console.log("Initiate OK:", {
     id: init.id,
