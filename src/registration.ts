@@ -25,6 +25,20 @@ import {
 import { storage } from "./storage.js";
 import { randomUUID } from "node:crypto";
 
+interface BaseResponse {
+  errCode: number;
+  errMsg: string;
+  errDlt: string;
+}
+
+interface MintedTokenResponse extends BaseResponse {
+  data: {
+    imToken: string;
+    sessionID: string;
+    userID: string;
+  };
+}
+
 /** Platform ID values used by messenger-business-service (openim protocol). */
 const PLATFORM_IDS = {
   ios: 1,
@@ -85,6 +99,8 @@ export class RegistrationClient {
   }
 
   private get platformId(): number {
+    console.log('show passed platform', this.platform);
+    console.log("show platformId", toPlatformId(this.platform));
     return toPlatformId(this.platform);
   }
 
@@ -355,7 +371,7 @@ export class RegistrationClient {
       deviceSignature,
     };
 
-    console.log("show payload", payload)
+    console.log("show payload", payload);
 
     const { data } = await this.axios.post("/account/register", payload);
 
@@ -369,6 +385,8 @@ export class RegistrationClient {
       // Chat RPC always returns sessionID for end-user register; keep our derived one as fallback.
       this.sessionID = sessionID;
     }
+
+    storage.setItem("userInfo", JSON.stringify(unwrapped));
 
     return unwrapped;
   }
@@ -467,7 +485,7 @@ export class RegistrationClient {
     };
 
     const { data } = await this.axios.post(path, bodyObj, { headers });
-    console.log("show the data", data)
+    console.log("show the data", data);
     return data;
   }
 
@@ -483,7 +501,9 @@ export class RegistrationClient {
     }
 
     const path = "/account/im_token";
-    const bodyObj = {};
+    const bodyObj = {
+      platform: this.platformId,
+    };
     const body = JSON.stringify(bodyObj);
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const nonce = crypto.randomUUID();
@@ -497,8 +517,9 @@ export class RegistrationClient {
       "X-Nonce": nonce,
     };
 
-    const { data } = await this.axios.post(path, bodyObj, { headers });
-    console.log("show the data", data)
+    const { data } = (await this.axios.post(path, bodyObj, { headers }));
+    console.log("show the data", data);
+    storage.setItem('im_token', data.data.imToken);
     return data;
   }
 

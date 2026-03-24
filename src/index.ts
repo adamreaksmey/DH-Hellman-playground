@@ -6,14 +6,14 @@ import {
 } from "./registration.js";
 
 async function main() {
-    const BASE_URL = "https://mbs-api-dev.vai247.pro";
-    // const BASE_URL = "http://localhost:10008";
+    // const BASE_URL = "https://mbs-api-dev.vai247.pro";
+    const BASE_URL = "http://localhost:10008";
 
     const DEVICE_INFO = "MyApp/1.0 web";
     const PLATFORM = "web";
     const defaultOTPVerificationCode = "999999";
     const areaCode = "+855";
-    const phoneNumber = "977488888";
+    const phoneNumber = "977658888";
 
     const client = new RegistrationClient(BASE_URL, DEVICE_INFO, PLATFORM);
 
@@ -72,7 +72,7 @@ async function main() {
         console.log("show new im token minted", getNewImTokenMinted);
 
         // 6. Logout — POST /account/logout
-        await client.logout();
+        // await client.logout();
         console.log("Logout complete");
     } catch (err) {
         if (axios.isAxiosError(err)) {
