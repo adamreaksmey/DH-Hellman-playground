@@ -6,14 +6,14 @@ import {
 } from "./registration.js";
 
 async function main() {
-    // const BASE_URL = "https://mbs-api-dev.vai247.pro";
-    const BASE_URL = "http://localhost:10008";
+    const BASE_URL = "https://mbs-api-dev.vai247.pro";
+    // const BASE_URL = "http://localhost:10008";
 
     const DEVICE_INFO = "MyApp/1.0 web";
     const PLATFORM = "web";
     const defaultOTPVerificationCode = "999999";
-    const areaCode = "+855";
-    const phoneNumber = "977658888";
+    const areaCode = "+811";
+    const phoneNumber = "11111113";
 
     const client = new RegistrationClient(BASE_URL, DEVICE_INFO, PLATFORM);
 
