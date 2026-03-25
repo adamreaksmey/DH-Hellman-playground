@@ -1,0 +1,143 @@
+/**
+ * Simple AppGateway WS test client (Node.js v22+).
+ *
+ * Usage:
+ *   APPGATEWAY_URL=ws://127.0.0.1:10011/ws \
+ *   APPGATEWAY_TOKEN=<user_token> \
+ *   APPGATEWAY_RECV_ID=<target_user_id> \
+ *   npm run new-gateway
+ *
+ * Group chat usage:
+ *   APPGATEWAY_URL=ws://127.0.0.1:10011/ws \
+ *   APPGATEWAY_TOKEN=<user_token> \
+ *   APPGATEWAY_GROUP_ID=<target_group_id> \
+ *   APPGATEWAY_SESSION_TYPE=3 \
+ *   npm run new-gateway
+ *
+ * Optional:
+ *   APPGATEWAY_CONTENT_TYPE=101
+ *   APPGATEWAY_SESSION_TYPE=1
+ */
+
+import { RegisterUserResponse } from "./interface.js";
+import { storage } from "./storage.js";
+
+type Envelope = {
+  event: string;
+  id?: string;
+  data?: unknown;
+};
+
+declare const process: {
+  env: Record<string, string | undefined>;
+  exit(code?: number): never;
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                   Config                                   */
+/* -------------------------------------------------------------------------- */
+
+const userInfo = JSON.parse(
+  storage.getItem("userInfo") ?? "{}"
+) as RegisterUserResponse;
+
+const CONFIG = {
+  wsURL: process.env.APPGATEWAY_URL ?? "ws://127.0.0.1:10011/ws",
+  token: process.env.APPGATEWAY_TOKEN ?? "",
+  recvID: process.env.APPGATEWAY_RECV_ID ?? "",
+  groupID: process.env.APPGATEWAY_GROUP_ID ?? "",
+  sessionType: Number(process.env.APPGATEWAY_SESSION_TYPE ?? "1"),
+  contentType: Number(process.env.APPGATEWAY_CONTENT_TYPE ?? "101"),
+};
+
+console.log("auth token len:", CONFIG.token.length);
+console.log("auth token head:", CONFIG.token.slice(0, 20));
+
+/* -------------------------------------------------------------------------- */
+/*                                 Validation                                 */
+/* -------------------------------------------------------------------------- */
+
+if (!CONFIG.token) {
+  console.error("APPGATEWAY_TOKEN is required");
+  process.exit(1);
+}
+
+if (!CONFIG.recvID && !CONFIG.groupID) {
+  console.error("Either APPGATEWAY_RECV_ID or APPGATEWAY_GROUP_ID is required");
+  process.exit(1);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                WS Helpers                                  */
+/* -------------------------------------------------------------------------- */
+
+const ws = new WebSocket(CONFIG.wsURL);
+
+function send(event: string, data?: unknown) {
+  const envelope: Envelope = {
+    event,
+    id: `${event}-${Date.now()}`,
+    data,
+  };
+  ws.send(JSON.stringify(envelope));
+}
+
+function buildSendMessage() {
+  const base = {
+    sessionType: CONFIG.sessionType,
+    contentType: CONFIG.contentType,
+    content: {
+      text: `hello from scripts/appgateway_ws_test.ts @ ${new Date().toISOString()}`,
+    },
+  };
+
+  return CONFIG.groupID
+    ? { ...base, groupID: CONFIG.groupID }
+    : { ...base, recvID: CONFIG.recvID };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               WS Handlers                                  */
+/* -------------------------------------------------------------------------- */
+
+ws.onopen = () => {
+  console.log(`[open] connected: ${CONFIG.wsURL}`);
+  send("auth", { token: CONFIG.token });
+};
+
+ws.onmessage = (event) => {
+  const raw = String(event.data);
+
+  let msg: Envelope;
+  try {
+    msg = JSON.parse(raw);
+  } catch {
+    console.log("[recv/non-json]", raw);
+    return;
+  }
+
+  console.log("[recv]", JSON.stringify(msg));
+
+  switch (msg.event) {
+    case "auth_ok":
+      send("send_message", buildSendMessage());
+      break;
+
+    case "message_ack":
+      console.log("[ok] message acknowledged, waiting for push events...");
+      break;
+
+    case "kick":
+      console.log("[kick] session invalidated by server");
+      ws.close();
+      break;
+  }
+};
+
+ws.onerror = (event) => {
+  console.error("[error]", event);
+};
+
+ws.onclose = (event) => {
+  console.log(`[close] code=${event.code} reason=${event.reason}`);
+};
