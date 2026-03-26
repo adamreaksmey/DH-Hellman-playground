@@ -10,6 +10,7 @@
     "sender": "tsc && node dist/sender-receiver-comparison/sender.js",
     "receiver": "tsc && node dist/sender-receiver-comparison/receiver.js",
     "gzip-size-comparison": "tsc && node dist/gzip-size-comparison.js",
+    "test-file-upload": "tsc && node dist/test-file-upload.js",
     "web:dev": "vite --config web/vite.config.ts",
     "web:build": "vite build --config web/vite.config.ts",
     "web:preview": "vite preview --config web/vite.config.ts"

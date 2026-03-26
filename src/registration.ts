@@ -157,6 +157,8 @@ export class RegistrationClient {
     storage.setItem("device_id", this.deviceID);
     storage.setItem("server_hmac_key", base64Encode(this.serverHMACKey));
 
+    console.log("base64Encode(this.serverHMACKey))", base64Encode(this.serverHMACKey))
+
     return data;
   }
 

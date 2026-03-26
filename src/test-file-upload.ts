@@ -39,14 +39,16 @@ const GROUP = "chat"; // tag/group
 const FILE_PATH = path.resolve(process.cwd(), "src", "test.jpg"); // <-- file to upload
 // For JPEG, prefer image/jpeg (image/jpg is non-standard but often accepted)
 const CONTENT_TYPE = "image/jpeg";
-const SESSION_ID = ""; // <-- set authenticated sessionID
-const SERVER_HMAC_KEY_B64 = base64Decode(storage.getItem("server_hmac_key") ?? ""); // <-- set base64 serverHMACKey
+const SESSION_ID = "89504fc7e248f7c08855f7a63e24229e3c0b603a3f007dc9a93090e138126824"; // <-- set authenticated sessionID
+const SERVER_HMAC_KEY_B64 = base64Decode("NBo6fNbLf2hQ2BCX4khoBprpHp6S7biWX9uGaqxQY74="); // <-- set base64 serverHMACKey
+const USER_ID = '8401016104'
 
 function buildProtectedHeaders(
   method: "POST",
   apiPath: string,
   body: unknown,
 ): Record<string, string> {
+  console.log("show SERVER_HMAC_KEY_B64", SERVER_HMAC_KEY_B64);
   if (!SESSION_ID || !SERVER_HMAC_KEY_B64) {
     throw new Error(
       "Missing SESSION_ID or SERVER_HMAC_KEY_B64 for protected upload endpoints.",
@@ -154,25 +156,24 @@ async function uploadToS3Form(
 async function main() {
   const s = await stat(FILE_PATH);
 
-  const userId = storage.getItem("user_id");
-
-  if (!userId) throw new Error("User ID not found");
+  if (!USER_ID) throw new Error("User ID not found");
 
   // 1) Initiate (your chat service proxies to OpenIM)
   const initiate = await httpPostJson<any>(
     `${CHAT_API_BASE}/object/initiate_form_data`,
     {
-      name: `${userId}/${path.basename(FILE_PATH)}`,
+      name: `${USER_ID}/${path.basename(FILE_PATH)}`,
       size: s.size,
       contentType: CONTENT_TYPE,
       group: GROUP,
+      platform: 5
     },
   );
 
   // Depending on your API response wrapper, the object might be directly returned
   // or nested (e.g. { errCode, data }). If you see nesting, adjust here.
   const init: InitiateResp = initiate.data ?? initiate;
-  //   console.log("show init", init);
+    console.log("show init", init);
 
   console.log("Initiate OK:", {
     id: init.id,
@@ -191,6 +192,7 @@ async function main() {
     {
       id: init.id,
       name: path.basename(FILE_PATH),
+      platform: 5
     },
   );
 
